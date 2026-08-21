@@ -3,29 +3,31 @@
 Smart Emergency Response & Hospital Coordination Platform
 
 ## Current Features (Phase 1-6)
-- **Frontend**: React + Vite + Tailwind CSS. Responsive UI.
-- **Backend**: Node.js + Express with modular architecture.
-- **Database**: MySQL.
-- **Authentication**: JWT-based secure login, Role-based access (Citizen, Driver, Admin).
-- **Real-Time Core**:
+- **Project Foundation (Phase 1):**
+  - Frontend: React + Vite + Tailwind CSS. Responsive UI.
+  - Backend: Node.js + Express with modular architecture.
+  - Database: MySQL.
+- **Authentication & Role-Based Access (Phase 2):**
+  - JWT-based secure login, Role-based access (Citizen, Driver, Admin).
+- **Core Emergency Management (Phase 3):**
   - Create emergency alerts with Geolocation integration.
   - Live Emergency Dashboard for Citizens and Responders.
-  - Real-time updates via **Socket.IO**.
-  - Emergency status tracking (`ACTIVE` -> `ACKNOWLEDGED` -> `RESPONDING` -> `RESOLVED`).
+  - Real-time updates via Socket.IO.
+  - Emergency status tracking (ACTIVE -> ACKNOWLEDGED -> RESPONDING -> RESOLVED).
   - In-app Notification Bell for instant alerts.
-- **Responder & Rescue Management (Phase 4)**:
+- **Responder & Rescue Management (Phase 4):**
   - Responder Availability status (Available/Busy/Offline).
   - Manual & Automatic nearest-responder emergency assignments using Haversine formula.
   - Continuous live GPS location tracking for Responders in the background.
   - Interactive Live Tracking Map using React-Leaflet.
-  - **AI Intelligence & Analytics (Phase 5):**
-    - Smart Heuristics Engine calculates Emergency Priority and recommends actions.
-    - Real-time Analytics Dashboard using Recharts for trend analysis and volume tracking.
-  - **Command Center & Communications (Phase 6):**
-    - Dedicated Admin Command Center `/admin/command-center` with global live map.
-    - Secure real-time chat rooms for each emergency `EmergencyChat.jsx`.
-    - System-wide Broadcasts and detailed Audit Logging.
-    - Global offline/reconnection status UI indicators.
+- **AI Intelligence & Analytics (Phase 5):**
+  - Smart Heuristics Engine calculates Emergency Priority and recommends actions.
+  - Real-time Analytics Dashboard using Recharts for trend analysis and volume tracking.
+- **Command Center & Communications (Phase 6):**
+  - Dedicated Admin Command Center `/admin/command-center` with global live map.
+  - Secure real-time chat rooms for each emergency `EmergencyChat.jsx`.
+  - System-wide Broadcasts and detailed Audit Logging.
+  - Global offline/reconnection status UI indicators.
   - Full Response History logs for Hospital Admins.
 
 ## Tech Stack
