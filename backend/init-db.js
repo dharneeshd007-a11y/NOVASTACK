@@ -294,6 +294,25 @@ async function initDB() {
     `);
     console.log('incident_agencies table created or already exists.');
 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS hospital_emergency_responses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        hospital_id INT NOT NULL,
+        emergency_id INT NOT NULL,
+        status ENUM('NOTIFIED', 'ACCEPTED', 'PREPARING', 'AMBULANCE_EN_ROUTE', 'PATIENT_ARRIVED', 'COMPLETED', 'REJECTED') DEFAULT 'NOTIFIED',
+        rejection_reason TEXT,
+        accepted_at TIMESTAMP NULL,
+        preparing_at TIMESTAMP NULL,
+        arrived_at TIMESTAMP NULL,
+        completed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (hospital_id) REFERENCES agencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('hospital_emergency_responses table created or already exists.');
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

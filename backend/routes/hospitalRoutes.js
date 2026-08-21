@@ -8,4 +8,8 @@ router.use(verifyToken);
 router.get('/capacity', hospitalController.getHospitalCapacity);
 router.patch('/:id/capacity', verifyRole(['admin', 'hospital', 'hospital_admin']), hospitalController.updateHospitalCapacity);
 
+router.get('/emergencies', hospitalController.getIncomingEmergencies);
+router.post('/emergencies/:id/accept', verifyRole(['admin', 'hospital', 'hospital_admin']), hospitalController.acceptEmergency);
+router.post('/emergencies/:id/reject', verifyRole(['admin', 'hospital', 'hospital_admin']), hospitalController.rejectEmergency);
+
 module.exports = router;

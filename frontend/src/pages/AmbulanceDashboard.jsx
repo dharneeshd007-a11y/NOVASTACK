@@ -33,6 +33,24 @@ export default function AmbulanceDashboard() {
     };
   }, [socket]);
 
+  const handleStatusUpdate = async (newStatus) => {
+    if (!activeIncident) return;
+    try {
+      await axios.patch(import.meta.env.VITE_API_URL + `/api/emergencies/${activeIncident.id}/status`, 
+        { status: newStatus === 'EN_ROUTE' ? 'RESPONDING' : 'RESOLVED' }, 
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      if (newStatus === 'ARRIVED') {
+        if (socket) socket.emit('patient_arrived_hospital', { emergency_id: activeIncident.id });
+        setActiveIncident(null);
+        alert('Patient marked as arrived at hospital!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update status');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-4xl mx-auto">
@@ -65,8 +83,8 @@ export default function AmbulanceDashboard() {
             </div>
 
             <div className="mt-6 flex space-x-4">
-              <button className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold">Mark En Route</button>
-              <button className="flex-1 bg-green-600 hover:bg-green-700 p-3 rounded font-bold">Mark Arrived</button>
+              <button onClick={() => handleStatusUpdate('EN_ROUTE')} className="flex-1 bg-blue-600 hover:bg-blue-700 p-3 rounded font-bold">Mark En Route</button>
+              <button onClick={() => handleStatusUpdate('ARRIVED')} className="flex-1 bg-green-600 hover:bg-green-700 p-3 rounded font-bold">Mark Arrived</button>
             </div>
           </div>
         ) : (
