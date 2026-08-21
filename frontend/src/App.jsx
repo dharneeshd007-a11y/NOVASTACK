@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import EmergencyDetails from './pages/EmergencyDetails';
+import ResponseHistory from './pages/ResponseHistory';
+import LiveLocationTracker from './components/LiveLocationTracker';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -39,17 +41,23 @@ const LandingPage = () => (
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/dashboard" element={
-        <ProtectedRoute><Dashboard /></ProtectedRoute>
-      } />
-      <Route path="/emergencies/:id" element={
-        <ProtectedRoute><EmergencyDetails /></ProtectedRoute>
-      } />
-    </Routes>
+    <>
+      <LiveLocationTracker />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
+        } />
+        <Route path="/emergencies/:id" element={
+          <ProtectedRoute><EmergencyDetails /></ProtectedRoute>
+        } />
+        <Route path="/history" element={
+          <ProtectedRoute><ResponseHistory /></ProtectedRoute>
+        } />
+      </Routes>
+    </>
   );
 }
 

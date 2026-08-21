@@ -75,6 +75,29 @@ async function initDB() {
     `);
     console.log('Notifications table created or already exists.');
 
+    // Phase 4 additions
+    try {
+      await connection.query(`ALTER TABLE users ADD COLUMN availability ENUM('AVAILABLE', 'BUSY', 'OFFLINE') DEFAULT 'OFFLINE'`);
+      await connection.query(`ALTER TABLE users ADD COLUMN last_latitude DECIMAL(10, 8)`);
+      await connection.query(`ALTER TABLE users ADD COLUMN last_longitude DECIMAL(11, 8)`);
+      await connection.query(`ALTER TABLE users ADD COLUMN last_active TIMESTAMP`);
+      console.log('Added Phase 4 columns to users table.');
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+      console.log('Phase 4 columns already exist in users table.');
+    }
+
+    try {
+      await connection.query(`ALTER TABLE emergency_responses ADD COLUMN accepted_at TIMESTAMP NULL`);
+      await connection.query(`ALTER TABLE emergency_responses ADD COLUMN responding_at TIMESTAMP NULL`);
+      await connection.query(`ALTER TABLE emergency_responses ADD COLUMN arrived_at TIMESTAMP NULL`);
+      await connection.query(`ALTER TABLE emergency_responses ADD COLUMN rejection_reason TEXT`);
+      console.log('Added Phase 4 columns to emergency_responses table.');
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+      console.log('Phase 4 columns already exist in emergency_responses table.');
+    }
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

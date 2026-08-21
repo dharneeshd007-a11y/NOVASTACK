@@ -6,6 +6,7 @@ require('dotenv').config();
 const socketConfig = require('./config/socket');
 const authRoutes = require('./routes/authRoutes');
 const emergencyRoutes = require('./routes/emergencyRoutes');
+const responderRoutes = require('./routes/responderRoutes'); // Phase 4
 
 const app = express();
 const server = http.createServer(app);
@@ -16,6 +17,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/emergencies', emergencyRoutes);
+app.use('/api/responders', responderRoutes); // Phase 4
 
 app.get('/api/health', (req, res) => {
   res.json({
