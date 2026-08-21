@@ -98,6 +98,46 @@ async function initDB() {
       console.log('Phase 4 columns already exist in emergency_responses table.');
     }
 
+    // Phase 5 additions
+    try {
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN ai_priority_score INT`);
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN ai_priority_level VARCHAR(50)`);
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN ai_recommendation TEXT`);
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN ai_analyzed_at TIMESTAMP NULL`);
+      console.log('Added Phase 5 columns to emergencies table.');
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+      console.log('Phase 5 columns already exist in emergencies table.');
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_ai_analysis (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        priority_score INT,
+        priority_level VARCHAR(50),
+        recommendation TEXT,
+        risk_factors TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('emergency_ai_analysis table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_escalations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        previous_priority VARCHAR(50),
+        new_priority VARCHAR(50),
+        reason TEXT,
+        escalated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        escalated_by VARCHAR(100),
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('emergency_escalations table created or already exists.');
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

@@ -141,9 +141,14 @@ function Dashboard() {
         <div className="flex items-center space-x-6">
           <div className="text-xl font-bold text-red-600">EmergencyLink</div>
           {isAdmin && (
-            <Link to="/history" className="text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer">
-              Response History
-            </Link>
+            <>
+              <Link to="/history" className="text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer">
+                Response History
+              </Link>
+              <Link to="/analytics" className="text-sm font-medium text-purple-600 hover:text-purple-900 cursor-pointer flex items-center">
+                <span className="mr-1">✨</span> AI Analytics
+              </Link>
+            </>
           )}
         </div>
         <div className="flex items-center space-x-6">

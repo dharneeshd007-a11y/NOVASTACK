@@ -60,6 +60,10 @@ exports.createEmergency = async (req, res) => {
       }
     }
 
+    // Trigger AI analysis asynchronously (non-blocking)
+    const aiService = require('../services/aiService');
+    aiService.analyzeEmergency(result.insertId);
+
     res.status(201).json(newEmergency[0]);
   } catch (error) {
     console.error(error);
@@ -102,7 +106,7 @@ exports.getEmergencyById = async (req, res) => {
 
     // Get current response info if exists
     const [responses] = await db.query(
-      'SELECT er.*, u.name as responder_name FROM emergency_responses er JOIN users u ON er.responder_id = u.id WHERE er.emergency_id = ? ORDER BY er.created_at DESC LIMIT 1',
+      'SELECT er.*, u.name as responder_name FROM emergency_responses er JOIN users u ON er.responder_id = u.id WHERE er.emergency_id = ? ORDER BY er.id DESC LIMIT 1',
       [id]
     );
 
@@ -247,7 +251,7 @@ exports.getResponseHistory = async (req, res) => {
       FROM emergency_responses er 
       JOIN emergencies e ON er.emergency_id = e.id 
       JOIN users u ON er.responder_id = u.id 
-      ORDER BY er.created_at DESC
+      ORDER BY er.assigned_at DESC
     `;
     const [history] = await db.query(query);
     res.json(history);

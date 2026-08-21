@@ -84,6 +84,14 @@ function EmergencyDetails() {
                 <p className="text-sm text-gray-500 font-medium">Severity</p>
                 <p className="text-lg font-bold text-gray-900">{emergency.severity}</p>
               </div>
+              {emergency.ai_priority_level && (
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">AI Priority</p>
+                  <p className={`text-lg font-bold ${emergency.ai_priority_level === 'CRITICAL' ? 'text-red-600' : 'text-orange-500'}`}>
+                    {emergency.ai_priority_level} (Score: {emergency.ai_priority_score})
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-gray-500 font-medium">Reported By</p>
                 <p className="text-lg font-bold text-gray-900">{emergency.reporter_name || 'Anonymous'}</p>
@@ -96,6 +104,17 @@ function EmergencyDetails() {
                 {emergency.description}
               </div>
             </div>
+
+            {emergency.ai_recommendation && (
+              <div>
+                <p className="text-sm text-gray-500 font-medium mb-1 flex items-center">
+                   <span className="mr-1 text-yellow-500">✨</span> AI Recommendation
+                </p>
+                <div className="bg-purple-50 p-4 rounded border border-purple-200 text-purple-900 text-sm">
+                  {emergency.ai_recommendation}
+                </div>
+              </div>
+            )}
 
             <div>
               <p className="text-sm text-gray-500 font-medium mb-1">Response Assignment</p>

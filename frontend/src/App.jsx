@@ -9,6 +9,8 @@ import EmergencyDetails from './pages/EmergencyDetails';
 import ResponseHistory from './pages/ResponseHistory';
 import LiveLocationTracker from './components/LiveLocationTracker';
 
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
   
@@ -55,6 +57,9 @@ function AppRoutes() {
         } />
         <Route path="/history" element={
           <ProtectedRoute><ResponseHistory /></ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>
         } />
       </Routes>
     </>
