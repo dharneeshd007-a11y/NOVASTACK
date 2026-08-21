@@ -13,7 +13,7 @@ export default function LiveLocationTracker() {
       try {
         const { latitude, longitude } = position.coords;
         const token = localStorage.getItem('token');
-        await axios.patch('http://localhost:5000/api/responders/location', {
+        await axios.patch((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/responders/location', {
           latitude, longitude
         }, {
           headers: { Authorization: `Bearer ${token}` }

@@ -23,7 +23,7 @@ function Dashboard() {
   const fetchEmergencies = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/emergencies', {
+      const res = await axios.get((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/emergencies', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmergencies(res.data);
@@ -35,7 +35,7 @@ function Dashboard() {
   const fetchResponders = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/responders', {
+      const res = await axios.get((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/responders', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setResponders(res.data);
@@ -90,7 +90,7 @@ function Dashboard() {
   const toggleAvailability = async (status) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch('http://localhost:5000/api/responders/status', { availability: status }, {
+      await axios.patch((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/responders/status', { availability: status }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAvailability(status);
@@ -102,7 +102,7 @@ function Dashboard() {
   const assignResponder = async (emergencyId, responderId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/emergencies/${emergencyId}/assign`, { responder_id: responderId }, {
+      await axios.post(`${import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergencies/${emergencyId}/assign`, { responder_id: responderId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Assigned successfully');

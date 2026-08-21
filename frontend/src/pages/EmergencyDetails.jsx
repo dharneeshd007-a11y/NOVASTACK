@@ -17,7 +17,7 @@ function EmergencyDetails() {
     const fetchEmergency = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:5000/api/emergencies/${id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergencies/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEmergency(res.data);
@@ -33,7 +33,7 @@ function EmergencyDetails() {
   const handleAction = async (action, status = null) => {
     try {
       const token = localStorage.getItem('token');
-      let url = `http://localhost:5000/api/emergencies/${id}/${action}`;
+      let url = `${import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergencies/${id}/${action}`;
       let data = {};
       if (action === 'response-status') {
         data = { status };

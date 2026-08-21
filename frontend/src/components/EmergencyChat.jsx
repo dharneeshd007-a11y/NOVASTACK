@@ -15,7 +15,7 @@ export default function EmergencyChat({ emergencyId }) {
     const fetchMessages = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get(`http://localhost:5000/api/emergencies/${emergencyId}/messages`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergencies/${emergencyId}/messages`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setMessages(res.data);
@@ -55,7 +55,7 @@ export default function EmergencyChat({ emergencyId }) {
     if (!newMessage.trim()) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/emergencies/${emergencyId}/messages`, {
+      await axios.post(`${import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergencies/${emergencyId}/messages`, {
         message: newMessage,
         message_type: 'TEXT'
       }, {

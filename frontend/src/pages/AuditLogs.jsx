@@ -10,7 +10,7 @@ export default function AuditLogs() {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/audit-logs', {
+        const res = await axios.get((import.meta.env.VITE_API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api/audit-logs', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setLogs(res.data);
