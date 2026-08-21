@@ -12,20 +12,19 @@ async function runMigration() {
 
     console.log('Connected to DB');
 
-    try {
-      await connection.query(`ALTER TABLE emergencies ADD COLUMN patient_name VARCHAR(255) NULL`);
-      console.log('Added patient_name');
-    } catch (e) { console.log('patient_name exists', e.message); }
-
-    try {
-      await connection.query(`ALTER TABLE emergencies ADD COLUMN patient_age INT NULL`);
-      console.log('Added patient_age');
-    } catch (e) { console.log('patient_age exists', e.message); }
-
-    try {
-      await connection.query(`ALTER TABLE emergencies MODIFY COLUMN status ENUM('ACTIVE', 'SEARCHING_AMBULANCE', 'AMBULANCE_ASSIGNED', 'DRIVER_ON_THE_WAY', 'DRIVER_ARRIVED', 'PATIENT_PICKED_UP', 'HOSPITAL_SELECTED', 'EN_ROUTE_TO_HOSPITAL', 'ARRIVED_HOSPITAL', 'COMPLETED', 'RESOLVED') DEFAULT 'SEARCHING_AMBULANCE'`);
-      console.log('Updated status ENUM');
-    } catch (e) { console.log('Enum update failed', e.message); }
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_driver_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        driver_id INT NOT NULL,
+        status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED') DEFAULT 'PENDING',
+        notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP NULL,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (driver_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Created emergency_driver_attempts');
 
     await connection.end();
     console.log('Migration complete');

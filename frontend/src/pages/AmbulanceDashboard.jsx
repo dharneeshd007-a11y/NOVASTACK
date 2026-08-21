@@ -114,7 +114,12 @@ export default function AmbulanceDashboard() {
       setIncomingAlert(null);
       fetchCurrentAssignment();
     } catch (err) {
-      alert('Failed to accept');
+      if (err.response && err.response.data && err.response.data.message) {
+        alert(err.response.data.message);
+      } else {
+        alert('Failed to accept. It may have been re-routed.');
+      }
+      setIncomingAlert(null); // Clear the alert since they failed to accept
     }
   };
 

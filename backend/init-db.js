@@ -217,6 +217,20 @@ async function initDB() {
     }
 
     await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_driver_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        driver_id INT NOT NULL,
+        status ENUM('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED') DEFAULT 'PENDING',
+        notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP NULL,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (driver_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('emergency_driver_attempts table created or already exists.');
+
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS agencies (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
