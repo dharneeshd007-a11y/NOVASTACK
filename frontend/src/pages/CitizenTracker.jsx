@@ -70,7 +70,7 @@ export default function CitizenTracker() {
             <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-red-600 transition-all duration-1000 ease-out relative" 
-                style={{ width: \`\${progressPercent}%\` }}
+                style={{ width: `${progressPercent}%` }}
               >
                 <div className="absolute top-0 right-0 bottom-0 left-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[stripes_1s_linear_infinite]"></div>
               </div>
@@ -88,11 +88,11 @@ export default function CitizenTracker() {
                const isFuture = index > currentStepIndex;
                
                return (
-                 <div key={stepName} className={\`flex items-center \${isFuture ? 'opacity-30' : ''}\`}>
-                    <div className={\`w-8 h-8 rounded-full flex items-center justify-center mr-4 \${isCompleted ? 'bg-green-500' : isCurrent ? 'bg-red-500 animate-pulse' : 'bg-gray-700'}\`}>
+                 <div key={stepName} className={`flex items-center ${isFuture ? 'opacity-30' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-4 ${isCompleted ? 'bg-green-500' : isCurrent ? 'bg-red-500 animate-pulse' : 'bg-gray-700'}`}>
                        {isCompleted ? <CheckCircle2 className="w-5 h-5 text-white" /> : <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
                     </div>
-                    <span className={\`font-bold \${isCurrent ? 'text-white text-lg' : 'text-gray-400'}\`}>
+                    <span className={`font-bold ${isCurrent ? 'text-white text-lg' : 'text-gray-400'}`}>
                        {stepName.replace(/_/g, ' ')}
                     </span>
                  </div>
@@ -129,7 +129,7 @@ export default function CitizenTracker() {
                
                <div className="flex justify-between bg-gray-900 p-3 rounded-lg border border-gray-700">
                   <span className="text-gray-400">Destination</span>
-                  <span className="font-bold">{emergency.hospital_id ? \`Hospital #\${emergency.hospital_id}\` : 'Pending Selection'}</span>
+                  <span className="font-bold">{emergency.hospital_id ? `Hospital #${emergency.hospital_id}` : 'Pending Selection'}</span>
                </div>
             </div>
           </div>
@@ -137,12 +137,12 @@ export default function CitizenTracker() {
 
       </div>
       
-      <style dangerouslySetInnerHTML={{__html: \`
+      <style dangerouslySetInnerHTML={{__html: `
         @keyframes stripes {
           0% { background-position: 1rem 0; }
           100% { background-position: 0 0; }
         }
-      \`}} />
+      `}} />
     </div>
   );
 }
