@@ -2,7 +2,7 @@
 
 Smart Emergency Response & Hospital Coordination Platform
 
-## Current Features (Phase 1-7)
+## Current Features (Phase 1-8)
 - **Project Foundation (Phase 1):**
   - Frontend: React + Vite + Tailwind CSS. Responsive UI.
   - Backend: Node.js + Express with modular architecture.
@@ -33,6 +33,11 @@ Smart Emergency Response & Hospital Coordination Platform
   - Progressive Web App (PWA) configuration with Service Worker & Manifest.
   - Global error handling and suppressed stack traces.
   - Comprehensive documentation (`/docs`) for API, Deployment, and Security.
+- **Multi-Agency Coordination (Phase 8):**
+  - Multi-agency profile registry (Police, Fire, Hospital, Ambulance).
+  - Dedicated `AmbulanceDashboard` for rapid dispatch monitoring.
+  - Dedicated `HospitalDashboard` for real-time bed & ICU capacity tracking.
+  - Incident Command Mode supporting Mass-Casualty Incident coordination.
   - Full Response History logs for Hospital Admins.
 
 ## Tech Stack
