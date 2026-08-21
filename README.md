@@ -2,7 +2,7 @@
 
 Smart Emergency Response & Hospital Coordination Platform
 
-## Current Features (Phase 1-3)
+## Current Features (Phase 1-4)
 - **Frontend**: React + Vite + Tailwind CSS. Responsive UI.
 - **Backend**: Node.js + Express with modular architecture.
 - **Database**: MySQL.
@@ -13,6 +13,12 @@ Smart Emergency Response & Hospital Coordination Platform
   - Real-time updates via **Socket.IO**.
   - Emergency status tracking (`ACTIVE` -> `ACKNOWLEDGED` -> `RESPONDING` -> `RESOLVED`).
   - In-app Notification Bell for instant alerts.
+- **Responder & Rescue Management (Phase 4)**:
+  - Responder Availability status (Available/Busy/Offline).
+  - Manual & Automatic nearest-responder emergency assignments using Haversine formula.
+  - Continuous live GPS location tracking for Responders in the background.
+  - Interactive Live Tracking Map using React-Leaflet.
+  - Full Response History logs for Hospital Admins.
 
 ## Tech Stack
 - **Frontend**: React, Vite, Tailwind CSS, React Router, Axios, Socket.IO Client
