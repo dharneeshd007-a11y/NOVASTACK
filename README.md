@@ -18,6 +18,14 @@ Smart Emergency Response & Hospital Coordination Platform
   - Manual & Automatic nearest-responder emergency assignments using Haversine formula.
   - Continuous live GPS location tracking for Responders in the background.
   - Interactive Live Tracking Map using React-Leaflet.
+  - **AI Intelligence & Analytics (Phase 5):**
+    - Smart Heuristics Engine calculates Emergency Priority and recommends actions.
+    - Real-time Analytics Dashboard using Recharts for trend analysis and volume tracking.
+  - **Command Center & Communications (Phase 6):**
+    - Dedicated Admin Command Center `/admin/command-center` with global live map.
+    - Secure real-time chat rooms for each emergency `EmergencyChat.jsx`.
+    - System-wide Broadcasts and detailed Audit Logging.
+    - Global offline/reconnection status UI indicators.
   - Full Response History logs for Hospital Admins.
 
 ## Tech Stack
