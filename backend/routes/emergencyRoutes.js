@@ -12,9 +12,9 @@ router.get('/:id', verifyToken, emergencyController.getEmergencyById);
 router.post('/:id/assign', verifyToken, verifyRole(['hospital_admin']), emergencyController.assignResponder);
 
 // Responder Workflow
-router.post('/:id/accept', verifyToken, verifyRole(['driver', 'hospital_admin']), emergencyController.acceptEmergency);
-router.post('/:id/reject', verifyToken, verifyRole(['driver', 'hospital_admin']), emergencyController.rejectEmergency);
-router.patch('/:id/response-status', verifyToken, verifyRole(['driver', 'hospital_admin']), emergencyController.updateResponseStatus);
+router.post('/:id/accept', verifyToken, verifyRole(['ambulance_driver']), emergencyController.acceptEmergency);
+router.post('/:id/decline', verifyToken, verifyRole(['ambulance_driver']), emergencyController.declineEmergency);
+router.patch('/:id/status', verifyToken, verifyRole(['ambulance_driver', 'hospital', 'system_admin']), emergencyController.updateEmergencyStatus);
 
 // Legacy 
 router.patch('/:id/status', verifyToken, verifyRole(['driver', 'hospital_admin']), emergencyController.updateStatus);

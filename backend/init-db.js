@@ -185,14 +185,26 @@ async function initDB() {
     `);
     console.log('audit_logs table created or already exists.');
 
-    // Phase 8 additions
+    // Phase 8 + Simplified Workflow additions
     try {
+      // Safely migrate old roles
+      await connection.query(`UPDATE users SET role = 'SYSTEM_ADMIN' WHERE role NOT IN ('citizen', 'ambulance_driver', 'hospital', 'system_admin')`);
+      
       await connection.query(`
-        ALTER TABLE users MODIFY COLUMN role ENUM('citizen', 'driver', 'hospital_admin', 'ambulance', 'hospital', 'police', 'fire', 'admin') NOT NULL
+        ALTER TABLE users MODIFY COLUMN role ENUM('citizen', 'ambulance_driver', 'hospital', 'system_admin') NOT NULL DEFAULT 'citizen'
       `);
-      console.log('Updated users table roles for Phase 8.');
+      console.log('Updated users table roles for simplified workflow.');
     } catch (err) {
       console.log('Roles already updated or error:', err.message);
+    }
+
+    try {
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN ambulance_driver_id INT NULL`);
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN hospital_id INT NULL`);
+      await connection.query(`ALTER TABLE emergencies MODIFY COLUMN status ENUM('ACTIVE', 'WAITING_FOR_AMBULANCE', 'AMBULANCE_ASSIGNED', 'EN_ROUTE_TO_CITIZEN', 'ARRIVED_AT_CITIZEN', 'PATIENT_PICKED_UP', 'HOSPITAL_SELECTED', 'EN_ROUTE_TO_HOSPITAL', 'ARRIVED_AT_HOSPITAL', 'COMPLETED', 'RESOLVED') DEFAULT 'ACTIVE'`);
+      console.log('Updated emergencies table for simplified workflow.');
+    } catch (err) {
+      console.log('Emergencies schema already updated or error:', err.message);
     }
 
     try {

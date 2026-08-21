@@ -12,31 +12,25 @@ exports.createEmergency = async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO emergencies (user_id, type, description, latitude, longitude, address, severity, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'WAITING_FOR_AMBULANCE')`,
       [req.userId, type, description, latitude, longitude, address, severity]
     );
 
     const [newEmergency] = await db.query(`SELECT * FROM emergencies WHERE id = ?`, [result.insertId]);
     const io = socketConfig.getIO();
     
-    io.to('responders').emit('new_emergency', newEmergency[0]);
+    // Auto assignment logic (Haversine)
+    let assignedDriverId = null;
+    let minDistance = Infinity;
 
-    // Send general notification to responders
-    await db.query(`
-      INSERT INTO notifications (user_id, emergency_id, message)
-      SELECT id, ?, ? FROM users WHERE role IN ('driver', 'hospital_admin')
-    `, [result.insertId, `New ${severity} emergency reported: ${type}`]);
-
-    // Auto assignment logic
     if (latitude && longitude) {
-      const [availableResponders] = await db.query(
-        "SELECT * FROM users WHERE role IN ('driver', 'hospital_admin') AND availability = 'AVAILABLE' AND last_latitude IS NOT NULL"
+      const [availableDrivers] = await db.query(
+        "SELECT * FROM users WHERE role = 'ambulance_driver' AND availability = 'AVAILABLE' AND last_latitude IS NOT NULL"
       );
       
-      if (availableResponders.length > 0) {
+      if (availableDrivers.length > 0) {
         let nearest = null;
-        let minDistance = Infinity;
-        for (const r of availableResponders) {
+        for (const r of availableDrivers) {
           const d = getDistanceFromLatLonInKm(latitude, longitude, r.last_latitude, r.last_longitude);
           if (d < minDistance) {
             minDistance = d;
@@ -45,17 +39,15 @@ exports.createEmergency = async (req, res) => {
         }
         
         if (nearest) {
-          await db.query(
-            'INSERT INTO emergency_responses (emergency_id, responder_id, status) VALUES (?, ?, ?)',
-            [result.insertId, nearest.id, 'ASSIGNED']
-          );
-          await db.query('UPDATE users SET availability = ? WHERE id = ?', ['BUSY', nearest.id]);
+          assignedDriverId = nearest.id;
           
-          io.to(`user_${nearest.id}`).emit('emergency_assigned', { emergency: newEmergency[0], distance: minDistance });
+          await db.query('UPDATE emergencies SET ambulance_driver_id = ?, status = "AMBULANCE_ASSIGNED" WHERE id = ?', [assignedDriverId, result.insertId]);
+          await db.query('UPDATE users SET availability = "BUSY" WHERE id = ?', [assignedDriverId]);
           
-          await db.query(`INSERT INTO notifications (user_id, emergency_id, message) VALUES (?, ?, ?)`,
-            [nearest.id, result.insertId, `You have been automatically assigned to a new emergency!`]
-          );
+          io.to(`user_${assignedDriverId}`).emit('nearest_ambulance_emergency', { 
+            emergency: newEmergency[0], 
+            distance: minDistance 
+          });
         }
       }
     }
@@ -175,69 +167,92 @@ exports.acceptEmergency = async (req, res) => {
   }
 };
 
-// Responder Reject
-exports.rejectEmergency = async (req, res) => {
+// Driver Decline
+exports.declineEmergency = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason } = req.body;
+    const { excluded_driver_ids } = req.body; // array of drivers who already declined
     
-    const [responses] = await db.query('SELECT * FROM emergency_responses WHERE emergency_id = ? AND responder_id = ? AND status = "ASSIGNED" ORDER BY id DESC LIMIT 1', [id, req.userId]);
-    if (responses.length === 0) return res.status(404).json({ message: 'Assignment not found' });
+    const [emergencies] = await db.query('SELECT * FROM emergencies WHERE id = ?', [id]);
+    if (emergencies.length === 0) return res.status(404).json({ message: 'Emergency not found' });
+    
+    const emergency = emergencies[0];
 
-    await db.query('UPDATE emergency_responses SET status = "REJECTED", rejection_reason = ? WHERE id = ?', [reason || null, responses[0].id]);
+    // Mark current driver as available again
     await db.query('UPDATE users SET availability = "AVAILABLE" WHERE id = ?', [req.userId]);
-    
-    const io = socketConfig.getIO();
-    io.to('responders').emit('emergency_rejected', { emergency_id: id, responder_id: req.userId });
 
-    res.json({ message: 'Emergency rejected' });
+    let excluded = [req.userId];
+    if (excluded_driver_ids && Array.isArray(excluded_driver_ids)) {
+      excluded = [...new Set([...excluded, ...excluded_driver_ids])];
+    }
+
+    // Find NEXT nearest
+    const [availableDrivers] = await db.query(
+      `SELECT * FROM users WHERE role = 'ambulance_driver' AND availability = 'AVAILABLE' AND last_latitude IS NOT NULL AND id NOT IN (?)`,
+      [excluded]
+    );
+
+    const io = socketConfig.getIO();
+    let nextAssignedId = null;
+    let minDistance = Infinity;
+
+    if (availableDrivers.length > 0 && emergency.latitude && emergency.longitude) {
+      let nearest = null;
+      for (const r of availableDrivers) {
+        const d = getDistanceFromLatLonInKm(emergency.latitude, emergency.longitude, r.last_latitude, r.last_longitude);
+        if (d < minDistance) {
+          minDistance = d;
+          nearest = r;
+        }
+      }
+      
+      if (nearest) {
+        nextAssignedId = nearest.id;
+        await db.query('UPDATE emergencies SET ambulance_driver_id = ?, status = "AMBULANCE_ASSIGNED" WHERE id = ?', [nextAssignedId, id]);
+        await db.query('UPDATE users SET availability = "BUSY" WHERE id = ?', [nextAssignedId]);
+        
+        io.to(`user_${nextAssignedId}`).emit('nearest_ambulance_emergency', { 
+          emergency, 
+          distance: minDistance 
+        });
+      }
+    }
+    
+    if (!nextAssignedId) {
+      await db.query('UPDATE emergencies SET ambulance_driver_id = NULL, status = "WAITING_FOR_AMBULANCE" WHERE id = ?', [id]);
+    }
+
+    res.json({ message: 'Emergency declined, routed to next available.', nextAssignedId });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-// Update Response Status
-exports.updateResponseStatus = async (req, res) => {
+// Simplified Workflow Status Update
+exports.updateEmergencyStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body; // 'RESPONDING', 'ARRIVED', 'RESOLVED'
+    const { status, hospital_id } = req.body;
     
-    const [responses] = await db.query('SELECT * FROM emergency_responses WHERE emergency_id = ? AND responder_id = ? AND status NOT IN ("REJECTED", "RESOLVED") ORDER BY id DESC LIMIT 1', [id, req.userId]);
-    if (responses.length === 0) return res.status(404).json({ message: 'Active response not found' });
+    let query = 'UPDATE emergencies SET status = ? WHERE id = ?';
+    let params = [status, id];
 
-    let timeCol = null;
-    let emergencyStatus = null;
-    
-    if (status === 'RESPONDING') {
-      timeCol = 'responding_at';
-      emergencyStatus = 'RESPONDING';
-    } else if (status === 'ARRIVED') {
-      timeCol = 'arrived_at';
-    } else if (status === 'RESOLVED') {
-      timeCol = 'resolved_at';
-      emergencyStatus = 'RESOLVED';
-    } else {
-      return res.status(400).json({ message: 'Invalid status transition' });
+    if (hospital_id) {
+       query = 'UPDATE emergencies SET status = ?, hospital_id = ? WHERE id = ?';
+       params = [status, hospital_id, id];
     }
 
-    await db.query(`UPDATE emergency_responses SET status = ?, ${timeCol} = NOW() WHERE id = ?`, [status, responses[0].id]);
+    await db.query(query, params);
     
-    if (emergencyStatus) {
-      await db.query('UPDATE emergencies SET status = ? WHERE id = ?', [emergencyStatus, id]);
-    }
-
-    if (status === 'RESOLVED') {
-      await db.query('UPDATE users SET availability = "AVAILABLE" WHERE id = ?', [req.userId]);
+    if (status === 'COMPLETED') {
+       await db.query('UPDATE users SET availability = "AVAILABLE" WHERE id = ?', [req.userId]);
     }
     
     const io = socketConfig.getIO();
-    io.emit('response_status_updated', { emergency_id: id, status });
-    if (emergencyStatus) {
-       io.emit('emergency_updated', { id, status: emergencyStatus });
-    }
-
-    res.json({ message: 'Status updated', status });
+    io.emit('emergency_updated', { id, status });
+    
+    res.json({ message: 'Status updated successfully', status });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -16,6 +16,7 @@ import Broadcasts from './pages/Broadcasts';
 import AdminAgencies from './pages/AdminAgencies';
 import HospitalDashboard from './pages/HospitalDashboard';
 import AmbulanceDashboard from './pages/AmbulanceDashboard';
+import CitizenTracker from './pages/CitizenTracker';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -82,6 +83,9 @@ function AppRoutes() {
         } />
         <Route path="/history" element={
           <ProtectedRoute><ResponseHistory /></ProtectedRoute>
+        } />
+        <Route path="/my-emergency/:id" element={
+          <ProtectedRoute><CitizenTracker /></ProtectedRoute>
         } />
         <Route path="/analytics" element={
           <ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>
