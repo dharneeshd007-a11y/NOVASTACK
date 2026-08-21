@@ -142,6 +142,9 @@ function Dashboard() {
           <div className="text-xl font-bold text-red-600">EmergencyLink</div>
           {isAdmin && (
             <>
+              <Link to="/admin/command-center" className="text-sm font-medium text-red-600 hover:text-red-900 cursor-pointer flex items-center">
+                <span className="mr-2 h-2 w-2 bg-red-600 rounded-full animate-ping"></span> Command Center
+              </Link>
               <Link to="/history" className="text-sm font-medium text-gray-600 hover:text-gray-900 cursor-pointer">
                 Response History
               </Link>

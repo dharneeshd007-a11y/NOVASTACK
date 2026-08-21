@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import ResponderMap from '../components/ResponderMap';
+import EmergencyChat from '../components/EmergencyChat';
 
 function EmergencyDetails() {
   const { id } = useParams();
@@ -137,6 +138,10 @@ function EmergencyDetails() {
               <p className="text-sm text-gray-500 font-medium mb-2">Live Map</p>
               <ResponderMap emergencyLat={emergency.latitude} emergencyLon={emergency.longitude} responderLat={responderLat} responderLon={responderLon} />
               {emergency.address && <p className="text-xs text-gray-500 mt-2 text-center">{emergency.address}</p>}
+            </div>
+            
+            <div className="mt-8">
+              <EmergencyChat emergencyId={emergency.id} />
             </div>
           </div>
         </div>

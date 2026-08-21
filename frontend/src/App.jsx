@@ -8,8 +8,11 @@ import Dashboard from './pages/Dashboard';
 import EmergencyDetails from './pages/EmergencyDetails';
 import ResponseHistory from './pages/ResponseHistory';
 import LiveLocationTracker from './components/LiveLocationTracker';
-
+import ConnectionStatus from './components/ConnectionStatus';
 import AnalyticsDashboard from './pages/AnalyticsDashboard';
+import CommandCenter from './pages/CommandCenter';
+import AuditLogs from './pages/AuditLogs';
+import Broadcasts from './pages/Broadcasts';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -44,6 +47,7 @@ const LandingPage = () => (
 function AppRoutes() {
   return (
     <>
+      <ConnectionStatus />
       <LiveLocationTracker />
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -51,6 +55,15 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>
+        } />
+        <Route path="/admin/command-center" element={
+          <ProtectedRoute><CommandCenter /></ProtectedRoute>
+        } />
+        <Route path="/admin/audit-logs" element={
+          <ProtectedRoute><AuditLogs /></ProtectedRoute>
+        } />
+        <Route path="/admin/broadcast" element={
+          <ProtectedRoute><Broadcasts /></ProtectedRoute>
         } />
         <Route path="/emergencies/:id" element={
           <ProtectedRoute><EmergencyDetails /></ProtectedRoute>

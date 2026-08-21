@@ -138,6 +138,53 @@ async function initDB() {
     `);
     console.log('emergency_escalations table created or already exists.');
 
+    // Phase 6 additions
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        message TEXT NOT NULL,
+        message_type ENUM('TEXT', 'SYSTEM', 'ALERT') DEFAULT 'TEXT',
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('emergency_messages table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS broadcasts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        created_by INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        priority ENUM('GENERAL', 'CRITICAL', 'SAFETY', 'WEATHER', 'SYSTEM') DEFAULT 'GENERAL',
+        target ENUM('ALL_USERS', 'RESPONDERS', 'ADMINS', 'ACTIVE_RESPONDERS') DEFAULT 'ALL_USERS',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('broadcasts table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        entity_type VARCHAR(100),
+        entity_id INT,
+        old_value TEXT,
+        new_value TEXT,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('audit_logs table created or already exists.');
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

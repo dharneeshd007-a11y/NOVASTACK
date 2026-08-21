@@ -37,6 +37,32 @@ module.exports = {
       
       socket.join(`user_${socket.user.id}`); // For personal notifications
 
+      socket.on('join_emergency_room', async ({ emergency_id }) => {
+        try {
+          const db = require('./db');
+          const [emergencies] = await db.query('SELECT * FROM emergencies WHERE id = ?', [emergency_id]);
+          if (emergencies.length === 0) return;
+          const e = emergencies[0];
+
+          let hasAccess = false;
+          if (socket.user.role === 'hospital_admin') hasAccess = true;
+          else if (e.user_id === socket.user.id) hasAccess = true;
+          else {
+            const [responses] = await db.query('SELECT * FROM emergency_responses WHERE emergency_id = ? AND responder_id = ?', [emergency_id, socket.user.id]);
+            if (responses.length > 0) hasAccess = true;
+          }
+
+          if (hasAccess) {
+            socket.join(`emergency_${emergency_id}`);
+            console.log(`User ${socket.user.id} joined room emergency_${emergency_id}`);
+          } else {
+             socket.emit('error', { message: 'Unauthorized to join this emergency room' });
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
       });
