@@ -1,18 +1,17 @@
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import CitizenHome from './pages/CitizenHome';
-import DriverHome from './pages/DriverHome';
-import AdminHome from './pages/AdminHome';
+import Dashboard from './pages/Dashboard';
+import EmergencyDetails from './pages/EmergencyDetails';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
   
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/" replace />;
   
   return children;
 };
@@ -44,14 +43,11 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/citizen" element={
-        <ProtectedRoute allowedRoles={['citizen']}><CitizenHome /></ProtectedRoute>
+      <Route path="/dashboard" element={
+        <ProtectedRoute><Dashboard /></ProtectedRoute>
       } />
-      <Route path="/driver" element={
-        <ProtectedRoute allowedRoles={['driver']}><DriverHome /></ProtectedRoute>
-      } />
-      <Route path="/admin" element={
-        <ProtectedRoute allowedRoles={['hospital_admin']}><AdminHome /></ProtectedRoute>
+      <Route path="/emergencies/:id" element={
+        <ProtectedRoute><EmergencyDetails /></ProtectedRoute>
       } />
     </Routes>
   );
@@ -60,9 +56,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <SocketProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </SocketProvider>
     </AuthProvider>
   );
 }

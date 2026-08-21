@@ -2,18 +2,21 @@
 
 Smart Emergency Response & Hospital Coordination Platform
 
-## Current Features (Phase 1 & 2)
-- Project foundation initialized
-- React + Vite Frontend with Tailwind CSS
-- Node.js + Express Backend
-- MySQL Database connection
-- Role-based Authentication (Citizen, Ambulance Driver, Hospital Admin)
-- Secure JWT sessions & bcrypt password hashing
-- Protected frontend routes and placeholder dashboards
+## Current Features (Phase 1-3)
+- **Frontend**: React + Vite + Tailwind CSS. Responsive UI.
+- **Backend**: Node.js + Express with modular architecture.
+- **Database**: MySQL.
+- **Authentication**: JWT-based secure login, Role-based access (Citizen, Driver, Admin).
+- **Real-Time Core**:
+  - Create emergency alerts with Geolocation integration.
+  - Live Emergency Dashboard for Citizens and Responders.
+  - Real-time updates via **Socket.IO**.
+  - Emergency status tracking (`ACTIVE` -> `ACKNOWLEDGED` -> `RESPONDING` -> `RESOLVED`).
+  - In-app Notification Bell for instant alerts.
 
 ## Tech Stack
-- **Frontend**: React, Vite, Tailwind CSS, React Router, Axios
-- **Backend**: Node.js, Express, MySQL2, JSONWebToken, bcryptjs
+- **Frontend**: React, Vite, Tailwind CSS, React Router, Axios, Socket.IO Client
+- **Backend**: Node.js, Express, MySQL2, JSONWebToken, bcryptjs, Socket.IO
 - **Database**: MySQL
 
 ## How to Run
@@ -21,7 +24,7 @@ Smart Emergency Response & Hospital Coordination Platform
 ### Database Setup
 1. Ensure MySQL is running on your local machine.
 2. Update `backend/.env` with your DB credentials (use `backend/.env.example` as a template).
-3. Navigate to the backend directory and run the initialization script:
+3. Navigate to the backend directory and run the initialization script to setup tables (`users`, `emergencies`, `emergency_responses`, `notifications`):
    ```bash
    cd backend
    node init-db.js
@@ -52,5 +55,5 @@ Smart Emergency Response & Hospital Coordination Platform
    ```
 3. Start the backend server:
    ```bash
-   node server.js
+   npm start
    ```

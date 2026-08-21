@@ -28,6 +28,53 @@ async function initDB() {
     `);
     console.log('Users table created or already exists.');
 
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergencies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        type VARCHAR(100) NOT NULL,
+        description TEXT,
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        address VARCHAR(255),
+        severity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL,
+        status ENUM('ACTIVE', 'ACKNOWLEDGED', 'RESPONDING', 'RESOLVED') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Emergencies table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_responses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        responder_id INT NOT NULL,
+        status VARCHAR(100) NOT NULL,
+        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP NULL,
+        resolved_at TIMESTAMP NULL,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (responder_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Emergency responses table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        emergency_id INT,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('Notifications table created or already exists.');
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

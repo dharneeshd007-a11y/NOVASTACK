@@ -15,11 +15,8 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      const user = await login(email, password);
-      if (user.role === 'citizen') navigate('/citizen');
-      else if (user.role === 'driver') navigate('/driver');
-      else if (user.role === 'hospital_admin') navigate('/admin');
-      else navigate('/');
+      await login(email, password);
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {
