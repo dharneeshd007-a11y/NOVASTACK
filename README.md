@@ -2,7 +2,7 @@
 
 Smart Emergency Response & Hospital Coordination Platform
 
-## Current Features (Phase 1-4)
+## Current Features (Phase 1-6)
 - **Frontend**: React + Vite + Tailwind CSS. Responsive UI.
 - **Backend**: Node.js + Express with modular architecture.
 - **Database**: MySQL.
