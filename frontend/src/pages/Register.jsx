@@ -1,13 +1,20 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { SocketContext } from '../context/SocketContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Eye, EyeOff, Shield, Activity, MapPin, Navigation, Building2, CheckCircle2 } from 'lucide-react';
 
 function Register() {
   const { register } = useContext(AuthContext);
-  const { isConnected } = useContext(SocketContext);
   const navigate = useNavigate();
+  
+  const [isConnected, setIsConnected] = useState(true);
+  
+  useEffect(() => {
+    // Check actual backend connection since Socket is unauthenticated here
+    fetch(import.meta.env.VITE_API_URL + '/api/emergencies')
+      .then(() => setIsConnected(true))
+      .catch(() => setIsConnected(false));
+  }, []);
   
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'citizen' });
   const [error, setError] = useState('');
