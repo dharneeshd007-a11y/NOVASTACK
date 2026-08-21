@@ -88,7 +88,7 @@ export default function CitizenTracker({ emergencyId, onResolved }) {
         
         <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl text-center">
           <p className="text-xs text-red-400 font-bold uppercase tracking-wider mb-0.5">Current Status</p>
-          <p className="text-sm font-bold text-white">{emergency.status.replace(/_/g, ' ')}</p>
+          <p className="text-sm font-bold text-white">{(emergency.status || 'UNKNOWN').replace(/_/g, ' ')}</p>
         </div>
       </div>
 

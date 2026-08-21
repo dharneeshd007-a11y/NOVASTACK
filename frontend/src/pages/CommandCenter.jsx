@@ -119,7 +119,7 @@ export default function CommandCenter() {
                   <td className="p-4 text-sm text-gray-300">{e.hospital_id || <span className="text-gray-600">Pending</span>}</td>
                   <td className="p-4">
                     <span className="inline-block px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-wider rounded-md">
-                      {e.status.replace(/_/g, ' ')}
+                      {(e.status || 'UNKNOWN').replace(/_/g, ' ')}
                     </span>
                   </td>
                 </tr>

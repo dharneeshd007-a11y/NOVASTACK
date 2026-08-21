@@ -119,7 +119,7 @@ export default function HospitalDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-500 mb-1">Status</p>
-                    <p className="text-sm font-bold text-white bg-white/5 px-3 py-1 rounded-lg border border-white/10">{e.status.replace(/_/g, ' ')}</p>
+                    <p className="text-sm font-bold text-white bg-white/5 px-3 py-1 rounded-lg border border-white/10">{(e.status || 'UNKNOWN').replace(/_/g, ' ')}</p>
                   </div>
                 </div>
 
