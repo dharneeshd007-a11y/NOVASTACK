@@ -14,6 +14,11 @@ const chatRoutes = require('./routes/chatRoutes'); // Phase 6
 const broadcastRoutes = require('./routes/broadcastRoutes'); // Phase 6
 const auditRoutes = require('./routes/auditRoutes'); // Phase 6
 const commandCenterRoutes = require('./routes/commandCenterRoutes'); // Phase 6
+const agencyRoutes = require('./routes/agencyRoutes'); // Phase 8
+const resourceRoutes = require('./routes/resourceRoutes');
+const hospitalRoutes = require('./routes/hospitalRoutes');
+const publicAlertRoutes = require('./routes/publicAlertRoutes');
+const emergencyContactRoutes = require('./routes/emergencyContactRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +48,11 @@ app.use('/api/emergencies/:id/messages', chatRoutes); // Phase 6
 app.use('/api/broadcasts', broadcastRoutes); // Phase 6
 app.use('/api/audit-logs', auditRoutes); // Phase 6
 app.use('/api/command-center', commandCenterRoutes); // Phase 6
+app.use('/api/agencies', agencyRoutes); // Phase 8
+app.use('/api/resources', resourceRoutes); // Phase 8
+app.use('/api/hospitals', hospitalRoutes); // Phase 8
+app.use('/api/public-alerts', publicAlertRoutes); // Phase 8
+app.use('/api/emergency-contacts', emergencyContactRoutes); // Phase 8
 
 // Health Check (Phase 7)
 app.get('/api/health', (req, res) => {

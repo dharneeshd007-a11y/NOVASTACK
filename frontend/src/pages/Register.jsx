@@ -45,9 +45,14 @@ function Register() {
             </div>
             <div>
               <select name="role" required className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-b-md focus:outline-none focus:ring-red-500 focus:border-red-500 focus:z-10 sm:text-sm" value={formData.role} onChange={handleChange}>
-                <option value="citizen">Citizen</option>
-                <option value="driver">Ambulance Driver</option>
+                <option value="citizen">Citizen (Reporter)</option>
+                <option value="driver">Responder / Driver</option>
                 <option value="hospital_admin">Hospital Admin</option>
+                <option value="ambulance">Ambulance Team</option>
+                <option value="hospital">Hospital Staff</option>
+                <option value="police">Police Team</option>
+                <option value="fire">Fire & Rescue Team</option>
+                <option value="admin">System Admin</option>
               </select>
             </div>
           </div>

@@ -185,6 +185,115 @@ async function initDB() {
     `);
     console.log('audit_logs table created or already exists.');
 
+    // Phase 8 additions
+    try {
+      await connection.query(`
+        ALTER TABLE users MODIFY COLUMN role ENUM('citizen', 'driver', 'hospital_admin', 'ambulance', 'hospital', 'police', 'fire', 'admin') NOT NULL
+      `);
+      console.log('Updated users table roles for Phase 8.');
+    } catch (err) {
+      console.log('Roles already updated or error:', err.message);
+    }
+
+    try {
+      await connection.query(`ALTER TABLE emergencies ADD COLUMN incident_mode ENUM('NORMAL', 'MASS_CASUALTY', 'DISASTER') DEFAULT 'NORMAL'`);
+      console.log('Added incident_mode column to emergencies table.');
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME') throw err;
+    }
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS agencies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type ENUM('AMBULANCE', 'HOSPITAL', 'POLICE', 'FIRE', 'OTHER') NOT NULL,
+        address TEXT,
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        phone VARCHAR(50),
+        email VARCHAR(255),
+        status ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('agencies table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS resources (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        agency_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        type VARCHAR(100) NOT NULL,
+        status ENUM('AVAILABLE', 'BUSY', 'MAINTENANCE', 'OFFLINE') DEFAULT 'OFFLINE',
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (agency_id) REFERENCES agencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('resources table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS hospital_capacity (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        agency_id INT NOT NULL,
+        emergency_beds INT DEFAULT 0,
+        icu_available INT DEFAULT 0,
+        general_beds INT DEFAULT 0,
+        capacity_status ENUM('AVAILABLE', 'LIMITED', 'FULL') DEFAULT 'AVAILABLE',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (agency_id) REFERENCES agencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('hospital_capacity table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS public_alerts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        created_by INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        severity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL,
+        center_latitude DECIMAL(10, 8),
+        center_longitude DECIMAL(11, 8),
+        radius_km DECIMAL(5, 2),
+        expires_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('public_alerts table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS emergency_contacts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        relationship VARCHAR(100),
+        phone VARCHAR(50) NOT NULL,
+        email VARCHAR(255),
+        priority INT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('emergency_contacts table created or already exists.');
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS incident_agencies (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        emergency_id INT NOT NULL,
+        agency_id INT NOT NULL,
+        status ENUM('ASSIGNED', 'EN_ROUTE', 'ON_SCENE', 'RESOLVED') DEFAULT 'ASSIGNED',
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (emergency_id) REFERENCES emergencies(id) ON DELETE CASCADE,
+        FOREIGN KEY (agency_id) REFERENCES agencies(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('incident_agencies table created or already exists.');
+
     await connection.end();
     console.log('Database initialization complete.');
   } catch (error) {

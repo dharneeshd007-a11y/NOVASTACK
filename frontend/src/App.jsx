@@ -59,6 +59,15 @@ function AppRoutes() {
         <Route path="/admin/command-center" element={
           <ProtectedRoute><CommandCenter /></ProtectedRoute>
         } />
+        <Route path="/admin/agencies" element={
+          <ProtectedRoute><AdminAgencies /></ProtectedRoute>
+        } />
+        <Route path="/hospital/dashboard" element={
+          <ProtectedRoute><HospitalDashboard /></ProtectedRoute>
+        } />
+        <Route path="/ambulance/dashboard" element={
+          <ProtectedRoute><AmbulanceDashboard /></ProtectedRoute>
+        } />
         <Route path="/admin/audit-logs" element={
           <ProtectedRoute><AuditLogs /></ProtectedRoute>
         } />
