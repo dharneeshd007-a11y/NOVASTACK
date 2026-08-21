@@ -25,9 +25,9 @@ async function dispatchToNearestAmbulance(emergencyId, excludeDriverIds = []) {
   const [availableDrivers] = await db.query(query, params.length > 0 ? params : undefined);
 
   if (availableDrivers.length === 0) {
-    // No more drivers available. Mark as NO_AMBULANCE_AVAILABLE.
-    await db.query('UPDATE emergencies SET status = "NO_AMBULANCE_AVAILABLE" WHERE id = ?', [emergencyId]);
-    io.emit('emergency_updated', { id: emergencyId, status: 'NO_AMBULANCE_AVAILABLE' });
+    // No more drivers available. Mark as CANCELLED.
+    await db.query('UPDATE emergencies SET status = "CANCELLED" WHERE id = ?', [emergencyId]);
+    io.emit('emergency_updated', { id: emergencyId, status: 'CANCELLED' });
     return false;
   }
 

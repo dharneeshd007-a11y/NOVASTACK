@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { SocketContext } from '../context/SocketContext';
-import { MapPin, Navigation, CheckCircle2 } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle2, ShieldAlert, Phone, ArrowLeft } from 'lucide-react';
 
-export default function CitizenTracker() {
-  const { id } = useParams();
+export default function CitizenTracker({ emergencyId, onResolved }) {
+  const { id: paramId } = useParams();
+  const id = emergencyId || paramId;
+  const navigate = useNavigate();
+  
   const { socket } = useContext(SocketContext);
   const [emergency, setEmergency] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -16,6 +19,9 @@ export default function CitizenTracker() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       setEmergency(res.data);
+      if (['COMPLETED', 'RESOLVED', 'CANCELLED'].includes(res.data.status) && onResolved) {
+        onResolved();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -25,10 +31,8 @@ export default function CitizenTracker() {
     fetchEmergency();
     if (socket) {
       socket.emit('join_emergency', id);
-      
       socket.on('emergency_updated', fetchEmergency);
       socket.on('nearest_ambulance_emergency', fetchEmergency);
-      
       socket.on('driver:location', (data) => {
          setDriverLocation(data);
       });
@@ -42,7 +46,13 @@ export default function CitizenTracker() {
     };
   }, [socket, id]);
 
-  if (!emergency) return <div className="text-white text-center mt-20">Loading...</div>;
+  if (!emergency) {
+    return (
+      <div className="flex-1 p-8 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   const steps = [
     'SEARCHING_AMBULANCE',
@@ -50,99 +60,131 @@ export default function CitizenTracker() {
     'DRIVER_ON_THE_WAY',
     'DRIVER_ARRIVED',
     'PATIENT_PICKED_UP',
-    'ARRIVED_HOSPITAL',
-    'COMPLETED'
+    'ARRIVED_HOSPITAL'
   ];
 
   const currentStepIndex = steps.indexOf(emergency.status) >= 0 ? steps.indexOf(emergency.status) : 0;
   const progressPercent = Math.max(5, (currentStepIndex / (steps.length - 1)) * 100);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-xl mx-auto space-y-6">
-        
-        {/* Progress Card */}
-        <div className="bg-gray-800 p-8 rounded-2xl shadow-2xl border-t-8 border-red-600">
-          <h1 className="text-3xl font-bold text-center mb-1">Emergency Tracker</h1>
-          <p className="text-center text-gray-400 mb-8 font-mono text-sm">#EMG-{emergency.id}</p>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 animate-fade-in-up">
+      
+      {!emergencyId && (
+        <button onClick={() => navigate('/dashboard')} className="flex items-center text-sm text-gray-400 hover:text-white mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
+        </button>
+      )}
 
-          <div className="mb-8 relative">
-            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-red-600 transition-all duration-1000 ease-out relative" 
-                style={{ width: `${progressPercent}%` }}
-              >
-                <div className="absolute top-0 right-0 bottom-0 left-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[stripes_1s_linear_infinite]"></div>
-              </div>
-            </div>
-            
-            <p className="text-center mt-6 font-black text-xl text-red-400 uppercase tracking-widest animate-pulse">
-              {emergency.status.replace(/_/g, ' ')}
-            </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--color-brand-navy-light)] border border-white/5 p-6 rounded-2xl">
+        <div className="flex items-center">
+          <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mr-4">
+            <ShieldAlert className="w-6 h-6 text-red-500 animate-pulse" />
           </div>
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Active Emergency</h2>
+            <p className="text-sm text-gray-400">ID: #EMG-{emergency.id}</p>
+          </div>
+        </div>
+        
+        <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl text-center">
+          <p className="text-xs text-red-400 font-bold uppercase tracking-wider mb-0.5">Current Status</p>
+          <p className="text-sm font-bold text-white">{emergency.status.replace(/_/g, ' ')}</p>
+        </div>
+      </div>
 
-          <div className="space-y-4">
-             {steps.map((stepName, index) => {
-               const isCompleted = index < currentStepIndex;
-               const isCurrent = index === currentStepIndex;
-               const isFuture = index > currentStepIndex;
-               
-               return (
-                 <div key={stepName} className={`flex items-center ${isFuture ? 'opacity-30' : ''}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-4 ${isCompleted ? 'bg-green-500' : isCurrent ? 'bg-red-500 animate-pulse' : 'bg-gray-700'}`}>
-                       {isCompleted ? <CheckCircle2 className="w-5 h-5 text-white" /> : <div className="w-2.5 h-2.5 bg-white rounded-full"></div>}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Timeline */}
+        <div className="md:col-span-2 bg-[var(--color-brand-navy-light)] border border-white/5 rounded-2xl p-6 md:p-8">
+          <h3 className="font-bold text-lg text-white mb-8">Response Timeline</h3>
+          
+          <div className="relative">
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-800"></div>
+            <div 
+              className="absolute left-4 top-0 w-0.5 bg-red-500 transition-all duration-1000"
+              style={{ height: `${progressPercent}%` }}
+            ></div>
+
+            <div className="space-y-8 relative z-10">
+              {steps.map((stepName, index) => {
+                const isCompleted = index < currentStepIndex;
+                const isCurrent = index === currentStepIndex;
+                const isFuture = index > currentStepIndex;
+                
+                return (
+                  <div key={stepName} className={`flex items-center ${isFuture ? 'opacity-30' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-6 shrink-0 transition-colors ${
+                      isCompleted ? 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.4)]' : 
+                      isCurrent ? 'bg-red-500 border-4 border-[var(--color-brand-navy-light)] shadow-[0_0_0_2px_#ef4444] animate-pulse' : 
+                      'bg-gray-800'
+                    }`}>
+                      {isCompleted ? <CheckCircle2 className="w-5 h-5 text-white" /> : <div className={`w-2.5 h-2.5 rounded-full ${isCurrent ? 'bg-white' : 'bg-transparent'}`}></div>}
                     </div>
-                    <span className={`font-bold ${isCurrent ? 'text-white text-lg' : 'text-gray-400'}`}>
-                       {stepName.replace(/_/g, ' ')}
-                    </span>
-                 </div>
-               )
-             })}
+                    <div>
+                      <h4 className={`font-bold ${isCurrent ? 'text-white text-lg' : 'text-gray-400 text-sm'}`}>
+                        {stepName.replace(/_/g, ' ')}
+                      </h4>
+                      {isCurrent && <p className="text-xs text-red-400 mt-1">We are updating this status in real-time.</p>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Driver Live Details Card */}
-        {currentStepIndex >= 1 && currentStepIndex < 6 && (
-          <div className="bg-gray-800 p-6 rounded-2xl shadow-xl">
-            <h2 className="text-xl font-bold mb-4 flex items-center text-blue-400">
-               <Navigation className="w-5 h-5 mr-2" />
-               Ambulance Details
-            </h2>
-            <div className="space-y-3 text-sm">
-               <div className="flex justify-between bg-gray-900 p-3 rounded-lg border border-gray-700">
-                  <span className="text-gray-400">Driver ID</span>
-                  <span className="font-bold">{emergency.ambulance_driver_id}</span>
-               </div>
-               
-               <div className="flex justify-between bg-gray-900 p-3 rounded-lg border border-gray-700 items-center">
-                  <span className="text-gray-400 flex items-center">
-                     <MapPin className="w-4 h-4 mr-1" /> Live Location
-                  </span>
+        {/* Info sidebar */}
+        <div className="space-y-6">
+          {currentStepIndex >= 1 && (
+            <div className="bg-[var(--color-brand-navy-light)] border border-white/5 rounded-2xl p-6">
+              <h3 className="font-bold text-white mb-4 flex items-center">
+                <Navigation className="w-4 h-4 text-blue-500 mr-2" />
+                Ambulance Details
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Driver ID</p>
+                  <p className="text-sm font-medium text-white">{emergency.ambulance_driver_id || 'Waiting...'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Live Location</p>
                   {driverLocation ? (
-                    <span className="font-bold text-green-400 animate-pulse">
-                      Updating... {driverLocation.latitude.toFixed(4)}, {driverLocation.longitude.toFixed(4)}
-                    </span>
+                    <div className="flex items-center text-sm font-bold text-green-400 bg-green-500/10 px-3 py-1.5 rounded-lg border border-green-500/20">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
+                      Tracking Active
+                    </div>
                   ) : (
-                    <span className="font-bold text-gray-500">Connecting to GPS...</span>
+                    <p className="text-sm text-gray-400">Connecting to GPS...</p>
                   )}
-               </div>
-               
-               <div className="flex justify-between bg-gray-900 p-3 rounded-lg border border-gray-700">
-                  <span className="text-gray-400">Destination</span>
-                  <span className="font-bold">{emergency.hospital_id ? `Hospital #${emergency.hospital_id}` : 'Pending Selection'}</span>
-               </div>
+                </div>
+                <div>
+                   <p className="text-xs text-gray-500 mb-1">Destination Hospital</p>
+                   <p className="text-sm font-medium text-white">{emergency.hospital_id ? `Hospital #${emergency.hospital_id}` : 'Pending route'}</p>
+                </div>
+                
+                <button className="w-full mt-2 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-center text-sm font-medium transition-colors">
+                  <Phone className="w-4 h-4 mr-2" /> Call Driver
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-[var(--color-brand-navy-light)] border border-white/5 rounded-2xl p-6">
+            <h3 className="font-bold text-white mb-4">Patient Info</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Name</p>
+                <p className="text-sm font-medium text-white">{emergency.patient_name || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Emergency Type</p>
+                <p className="text-sm font-medium text-white">{emergency.type}</p>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
       </div>
-      
-      <style dangerouslySetInnerHTML={{__html: `
-        @keyframes stripes {
-          0% { background-position: 1rem 0; }
-          100% { background-position: 0 0; }
-        }
-      `}} />
     </div>
   );
 }

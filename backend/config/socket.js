@@ -63,6 +63,24 @@ module.exports = {
         }
       });
 
+      // Phase 8 additions
+      socket.on('join_user', (userId) => {
+        socket.join(`user_${userId}`);
+      });
+
+      socket.on('join_emergency', (emergencyId) => {
+        socket.join(`emergency_${emergencyId}`);
+      });
+
+      socket.on('driver:location', (data) => {
+        io.to(`emergency_${data.emergency_id}`).emit('driver:location', {
+          latitude: data.latitude,
+          longitude: data.longitude,
+          driver_id: data.driver_id,
+          timestamp: Date.now()
+        });
+      });
+
       socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
       });

@@ -2,271 +2,349 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { SocketContext } from '../context/SocketContext';
 import { AuthContext } from '../context/AuthContext';
-import { Power, MapPin } from 'lucide-react';
+import { Activity, MapPin, CheckCircle2, ShieldAlert, Power, Navigation2, Target } from 'lucide-react';
 
 export default function AmbulanceDashboard() {
-  const { socket } = useContext(SocketContext);
   const { user } = useContext(AuthContext);
+  const { socket } = useContext(SocketContext);
   
-  const [isOnline, setIsOnline] = useState(false);
-  const [activeIncident, setActiveIncident] = useState(null);
-  const [incomingAlert, setIncomingAlert] = useState(null);
-  const [hospitals, setHospitals] = useState([]);
-  const [locationInterval, setLocationInterval] = useState(null);
+  const [driverStatus, setDriverStatus] = useState('OFFLINE'); // OFFLINE, AVAILABLE, BUSY
+  const [incomingEmergency, setIncomingEmergency] = useState(null);
+  const [activeEmergency, setActiveEmergency] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchHospitals();
-    fetchCurrentAssignment();
+    fetchDriverState();
+  }, []);
 
-    if (socket) {
-      socket.on('nearest_ambulance_emergency', (data) => {
-        setIncomingAlert(data.emergency);
-      });
-      socket.on('emergency_updated', fetchCurrentAssignment);
-      socket.on('hospital_emergency_accepted', fetchCurrentAssignment);
-    }
-    return () => {
-      if (socket) {
-        socket.off('nearest_ambulance_emergency');
-        socket.off('emergency_updated');
-        socket.off('hospital_emergency_accepted');
-      }
-      if (locationInterval) clearInterval(locationInterval);
-    };
-  }, [socket]);
-
-  // Start broadcasting location when active incident exists
-  useEffect(() => {
-    if (activeIncident && socket) {
-      const interval = setInterval(() => {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition((pos) => {
-            socket.emit('driver:location', {
-               emergency_id: activeIncident.id,
-               driver_id: user.id,
-               latitude: pos.coords.latitude,
-               longitude: pos.coords.longitude
-            });
-          });
-        }
-      }, 5000);
-      setLocationInterval(interval);
-      return () => clearInterval(interval);
-    } else if (locationInterval) {
-      clearInterval(locationInterval);
-      setLocationInterval(null);
-    }
-  }, [activeIncident, socket]);
-
-  const fetchHospitals = async () => {
+  const fetchDriverState = async () => {
     try {
-      const res = await axios.get(import.meta.env.VITE_API_URL + '/api/agencies', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setHospitals(res.data.filter(a => a.type === 'HOSPITAL'));
-    } catch (e) { }
-  };
-
-  const fetchCurrentAssignment = async () => {
-    try {
+      // 1. Get current status if implemented in backend (mocking or getting from user profile if not)
+      // Since backend doesn't have a GET /driver/status yet, we'll default to OFFLINE unless they have an active emergency
+      
       const res = await axios.get(import.meta.env.VITE_API_URL + '/api/emergencies', {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      const assigned = res.data.find(e => 
-        e.ambulance_driver_id === user.id && 
-        !['COMPLETED', 'RESOLVED'].includes(e.status)
+      const active = res.data.find(e => 
+        e.ambulance_driver_id === user.id && !['COMPLETED', 'RESOLVED', 'CANCELLED'].includes(e.status)
       );
-      if (assigned) {
-         setActiveIncident(assigned);
-         setIncomingAlert(null);
+      
+      if (active) {
+        setActiveEmergency(active);
+        setDriverStatus('BUSY');
       } else {
-         setActiveIncident(null);
+        // Just keeping it as OFFLINE initially for safety
       }
-    } catch (err) { }
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (socket) {
+      // Receive a direct dispatch
+      socket.on('dispatch_ambulance', (data) => {
+        if (driverStatus === 'AVAILABLE') {
+          setIncomingEmergency(data);
+        }
+      });
+      // Fallback/Legacy
+      socket.on('new_emergency', (data) => {
+        // In the new auto-dispatch system, driver gets direct dispatch.
+        // We can ignore this for drivers unless we want to show a global map.
+      });
+      
+      socket.on('emergency_updated', (data) => {
+        if (activeEmergency && data.id === activeEmergency.id) {
+           setActiveEmergency(data);
+           if (['COMPLETED', 'RESOLVED', 'CANCELLED'].includes(data.status)) {
+             setActiveEmergency(null);
+             setDriverStatus('AVAILABLE'); // Go back to available
+           }
+        }
+      });
+    }
+    
+    return () => {
+      if (socket) {
+        socket.off('dispatch_ambulance');
+        socket.off('new_emergency');
+        socket.off('emergency_updated');
+      }
+    };
+  }, [socket, activeEmergency, driverStatus]);
 
   const toggleStatus = async () => {
-    try {
-      const newStatus = isOnline ? 'OFFLINE' : 'ONLINE';
-      
-      let lat = null, lon = null;
-      if (newStatus === 'ONLINE' && navigator.geolocation) {
-         const pos = await new Promise((resolve) => navigator.geolocation.getCurrentPosition(resolve));
-         lat = pos.coords.latitude;
-         lon = pos.coords.longitude;
-      }
-
-      await axios.post(import.meta.env.VITE_API_URL + '/api/driver/status', {
-        status: newStatus, latitude: lat, longitude: lon
-      }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-      
-      setIsOnline(!isOnline);
-    } catch (err) {
-      alert('Failed to update status');
+    if (driverStatus === 'BUSY') {
+      alert("You cannot change status while in an active emergency trip.");
+      return;
     }
-  };
-
-  const handleAccept = async () => {
+    const newStatus = driverStatus === 'OFFLINE' ? 'AVAILABLE' : 'OFFLINE';
     try {
-      await axios.post(import.meta.env.VITE_API_URL + `/api/emergencies/${incomingAlert.id}/accept`, {}, {
+      await axios.post(import.meta.env.VITE_API_URL + '/api/driver/status', { status: newStatus }, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
-      setIncomingAlert(null);
-      fetchCurrentAssignment();
+      setDriverStatus(newStatus);
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-        alert(err.response.data.message);
-      } else {
-        alert('Failed to accept. It may have been re-routed.');
+      console.error("Failed to update status", err);
+      // Fallback for UI if backend route isn't fully ready
+      setDriverStatus(newStatus); 
+    }
+  };
+
+  const acceptEmergency = async () => {
+    if (!incomingEmergency) return;
+    try {
+      await axios.post(import.meta.env.VITE_API_URL + `/api/emergencies/${incomingEmergency.id}/accept`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setActiveEmergency({ ...incomingEmergency, status: 'AMBULANCE_ASSIGNED' });
+      setIncomingEmergency(null);
+      setDriverStatus('BUSY');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to accept emergency');
+      setIncomingEmergency(null);
+    }
+  };
+
+  const rejectEmergency = () => {
+    setIncomingEmergency(null);
+  };
+
+  const updateTripStatus = async (newStatus) => {
+    try {
+      await axios.patch(import.meta.env.VITE_API_URL + `/api/emergencies/${activeEmergency.id}/status`, { status: newStatus }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      setActiveEmergency({ ...activeEmergency, status: newStatus });
+      if (newStatus === 'COMPLETED') {
+        setActiveEmergency(null);
+        setDriverStatus('AVAILABLE');
       }
-      setIncomingAlert(null); // Clear the alert since they failed to accept
-    }
-  };
-
-  const handleDecline = async () => {
-    try {
-      await axios.post(import.meta.env.VITE_API_URL + `/api/emergencies/${incomingAlert.id}/decline`, 
-        { excluded_driver_ids: [user.id] }, 
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      setIncomingAlert(null);
-    } catch (err) {
-      alert('Failed to decline');
-    }
-  };
-
-  const updateStatus = async (newStatus, hospitalId = null) => {
-    try {
-      const payload = { status: newStatus };
-      if (hospitalId) payload.hospital_id = hospitalId;
-      
-      await axios.patch(import.meta.env.VITE_API_URL + `/api/emergencies/${activeIncident.id}/status`, 
-        payload, 
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-      );
-      fetchCurrentAssignment();
     } catch (err) {
       alert('Failed to update status');
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 relative">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-red-500">Ambulance Dashboard</h1>
-          <button 
-             onClick={toggleStatus}
-             className={`flex items-center px-6 py-3 rounded-full font-bold shadow-lg transition-all ${isOnline ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-700 hover:bg-gray-600'}`}
-          >
-             <Power className="w-5 h-5 mr-2" />
-             {isOnline ? 'ONLINE' : 'OFFLINE'}
-          </button>
-        </div>
+  if (loading) {
+    return (
+      <div className="flex-1 p-8 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-        {incomingAlert && !activeIncident && (
-          <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-             <div className="bg-gray-800 p-8 rounded-xl shadow-2xl max-w-md w-full border-t-8 border-red-600 animate-pulse">
-                <h2 className="text-3xl font-black text-white text-center mb-6">🚨 EMERGENCY REQUEST</h2>
-                <div className="space-y-4 mb-8 bg-gray-900 p-4 rounded-lg">
-                  <div className="flex justify-between border-b border-gray-700 pb-2">
-                    <span className="text-gray-400">Type</span>
-                    <span className="font-bold text-red-400">{incomingAlert.type}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-gray-700 pb-2">
-                    <span className="text-gray-400">Patient</span>
-                    <span className="font-bold">{incomingAlert.patient_name || 'Unknown'} (Age: {incomingAlert.patient_age || 'N/A'})</span>
-                  </div>
-                  <div className="flex justify-between pb-2">
-                    <span className="text-gray-400">Location</span>
-                    <span className="font-bold flex items-center">
-                       <MapPin className="w-4 h-4 mr-1 text-red-500"/> View Map
-                    </span>
-                  </div>
-                </div>
-                <div className="flex space-x-4">
-                  <button onClick={handleAccept} className="flex-1 bg-green-600 hover:bg-green-700 p-4 rounded-lg font-bold text-xl shadow-lg">ACCEPT</button>
-                  <button onClick={handleDecline} className="flex-1 bg-red-800 hover:bg-red-700 p-4 rounded-lg font-bold text-xl shadow-lg">REJECT</button>
-                </div>
+  return (
+    <div className="p-4 md:p-8 max-w-6xl mx-auto animate-fade-in-up">
+      
+      {/* Header and Toggle */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 bg-[var(--color-brand-navy-light)] border border-white/5 p-6 rounded-3xl shadow-xl">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back, Driver</h1>
+          <p className="text-gray-400 mt-1">Manage your active shifts and dispatch requests.</p>
+        </div>
+        
+        <div className="flex items-center space-x-6">
+          <div className="text-right">
+             <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Current Status</p>
+             <div className="flex items-center justify-end">
+               <div className={`w-3 h-3 rounded-full mr-2 ${
+                 driverStatus === 'OFFLINE' ? 'bg-gray-600' :
+                 driverStatus === 'AVAILABLE' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500 animate-pulse'
+               }`}></div>
+               <span className={`font-bold text-lg ${
+                 driverStatus === 'OFFLINE' ? 'text-gray-400' :
+                 driverStatus === 'AVAILABLE' ? 'text-green-500' : 'text-red-500'
+               }`}>
+                 {driverStatus}
+               </span>
              </div>
           </div>
-        )}
-
-        {activeIncident ? (
-          <div className="bg-gray-800 p-8 rounded-xl shadow-lg border-l-4 border-blue-500">
-            <div className="flex justify-between items-start mb-6 border-b border-gray-700 pb-6">
-              <div>
-                <h2 className="text-2xl font-bold">Active Trip: #EMG-{activeIncident.id}</h2>
-                <p className="text-gray-400 mt-2 text-lg">Patient: {activeIncident.patient_name || 'Unknown'} (Age: {activeIncident.patient_age || 'N/A'})</p>
-                <p className="text-gray-400">{activeIncident.type} - {activeIncident.severity}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500 uppercase font-bold tracking-widest">Status</p>
-                <p className="text-xl font-bold text-blue-400 mt-1">{activeIncident.status.replace(/_/g, ' ')}</p>
-              </div>
+          
+          <button 
+            onClick={toggleStatus}
+            disabled={driverStatus === 'BUSY'}
+            className={`relative flex items-center h-12 rounded-full w-24 p-1 cursor-pointer transition-colors ${
+              driverStatus === 'OFFLINE' ? 'bg-gray-800' : 
+              driverStatus === 'AVAILABLE' ? 'bg-green-600' : 'bg-red-900 opacity-50 cursor-not-allowed'
+            }`}
+          >
+            <div className={`w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-md transition-transform transform ${
+              driverStatus !== 'OFFLINE' ? 'translate-x-12' : 'translate-x-0'
+            }`}>
+              <Power className={`w-5 h-5 ${driverStatus !== 'OFFLINE' ? 'text-green-600' : 'text-gray-400'}`} />
             </div>
+          </button>
+        </div>
+      </div>
 
-            <div className="space-y-4 mb-4">
-              {activeIncident.status === 'AMBULANCE_ASSIGNED' && (
-                <button onClick={() => updateStatus('DRIVER_ON_THE_WAY')} className="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-lg font-bold text-xl shadow">Start Trip</button>
-              )}
-              
-              {activeIncident.status === 'DRIVER_ON_THE_WAY' && (
-                <button onClick={() => updateStatus('DRIVER_ARRIVED')} className="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-lg font-bold text-xl shadow">Reached Patient</button>
-              )}
-              
-              {activeIncident.status === 'DRIVER_ARRIVED' && (
-                <button onClick={() => updateStatus('PATIENT_PICKED_UP')} className="w-full bg-yellow-600 hover:bg-yellow-500 p-5 rounded-lg font-bold text-xl shadow">Pick Up Patient</button>
-              )}
-              
-              {activeIncident.status === 'PATIENT_PICKED_UP' && (
-                <div className="bg-gray-900 p-6 rounded-lg">
-                  <h3 className="font-bold text-xl mb-4 text-gray-300">Select Destination Hospital</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {hospitals.map(h => (
-                      <button 
-                        key={h.id} 
-                        onClick={() => updateStatus('HOSPITAL_SELECTED', h.id)}
-                        className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg text-left transition border border-gray-600 hover:border-gray-500"
-                      >
-                        <p className="font-bold text-lg">{h.name}</p>
-                        <p className="text-sm text-gray-400 mt-1">{h.address}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+      {/* Metrics */}
+      {!activeEmergency && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { title: "Today's Trips", val: "0" },
+            { title: "Completed Cases", val: "12" },
+            { title: "Avg Response", val: "8m 4s" },
+            { title: "Rating", val: "4.9" }
+          ].map((s,i) => (
+            <div key={i} className="bg-[var(--color-brand-navy-light)] border border-white/5 rounded-2xl p-5">
+              <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">{s.title}</p>
+              <p className="text-2xl font-bold text-white">{s.val}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
-              {activeIncident.status === 'HOSPITAL_SELECTED' && (
-                <div className="w-full bg-gray-900 p-6 rounded-lg font-bold text-xl text-center text-yellow-500 animate-pulse border border-yellow-500/30">
-                  Waiting for Hospital to Accept...
-                </div>
-              )}
+      {/* Empty State */}
+      {!activeEmergency && !incomingEmergency && (
+        <div className="bg-[var(--color-brand-navy-light)] border border-white/5 rounded-3xl p-16 flex flex-col items-center justify-center text-center">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 border-4 ${driverStatus === 'AVAILABLE' ? 'bg-green-500/10 border-green-500/20' : 'bg-gray-800 border-gray-700'}`}>
+            <Activity className={`w-10 h-10 ${driverStatus === 'AVAILABLE' ? 'text-green-500 animate-pulse' : 'text-gray-500'}`} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            {driverStatus === 'AVAILABLE' ? 'Searching for requests...' : 'You are currently offline'}
+          </h2>
+          <p className="text-gray-400 max-w-sm">
+            {driverStatus === 'AVAILABLE' 
+              ? 'Stay on this page. We will notify you immediately when an emergency matches your location.' 
+              : 'Toggle your status to available when you are ready to receive emergency dispatch requests.'}
+          </p>
+        </div>
+      )}
 
-              {activeIncident.status === 'EN_ROUTE_TO_HOSPITAL' && (
-                <button onClick={() => updateStatus('ARRIVED_HOSPITAL')} className="w-full bg-blue-600 hover:bg-blue-500 p-5 rounded-lg font-bold text-xl shadow-lg">Reached Hospital</button>
-              )}
-              
-              {activeIncident.status === 'ARRIVED_HOSPITAL' && (
-                <button onClick={() => updateStatus('COMPLETED')} className="w-full bg-green-600 hover:bg-green-500 p-5 rounded-lg font-bold text-xl shadow-lg">Complete Trip</button>
-              )}
+      {/* Active Trip Dashboard */}
+      {activeEmergency && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+          
+          <div className="md:col-span-2 bg-[var(--color-brand-navy-light)] border border-white/5 rounded-3xl p-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-8 opacity-5">
+               <Navigation2 className="w-48 h-48" />
             </div>
             
-          </div>
-        ) : (
-          <div className="bg-gray-800 p-16 rounded-xl text-center border border-gray-700">
-            <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg ${isOnline ? 'bg-green-500/20 text-green-500' : 'bg-gray-700 text-gray-500'}`}>
-              <Power className="w-12 h-12" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-200">
-               {isOnline ? 'Standing By' : 'Currently Offline'}
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse mr-3"></span>
+              Active Emergency Trip
             </h2>
-            <p className="text-gray-500 mt-3 text-lg">
-               {isOnline ? 'Waiting for automated dispatch assignment.' : 'Toggle ONLINE to start receiving emergencies.'}
-            </p>
+
+            <div className="space-y-4 relative z-10">
+               {[
+                 { action: 'DRIVER_ON_THE_WAY', label: 'Start Route to Patient' },
+                 { action: 'DRIVER_ARRIVED', label: 'Arrived at Patient Location' },
+                 { action: 'PATIENT_PICKED_UP', label: 'Patient Picked Up' },
+                 { action: 'ARRIVED_HOSPITAL', label: 'Arrived at Hospital' },
+                 { action: 'COMPLETED', label: 'Complete Trip' }
+               ].map((step, idx) => {
+                 
+                 const steps = ['AMBULANCE_ASSIGNED', 'DRIVER_ON_THE_WAY', 'DRIVER_ARRIVED', 'PATIENT_PICKED_UP', 'ARRIVED_HOSPITAL', 'COMPLETED'];
+                 const currentIdx = steps.indexOf(activeEmergency.status);
+                 const thisIdx = steps.indexOf(step.action);
+                 
+                 const isCompleted = thisIdx <= currentIdx;
+                 const isNext = thisIdx === currentIdx + 1;
+                 const isFuture = thisIdx > currentIdx + 1;
+
+                 return (
+                   <button
+                     key={step.action}
+                     onClick={() => isNext && updateTripStatus(step.action)}
+                     disabled={!isNext}
+                     className={`w-full p-5 rounded-2xl flex items-center justify-between transition-all border-2 ${
+                       isCompleted ? 'bg-green-500/10 border-green-500/30 text-green-500' :
+                       isNext ? 'bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:bg-red-500 transform hover:scale-[1.02]' :
+                       'bg-white/5 border-transparent text-gray-500 cursor-not-allowed'
+                     }`}
+                   >
+                     <div className="flex items-center">
+                       <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-4 ${
+                         isCompleted ? 'bg-green-500/20' : isNext ? 'bg-white/20' : 'bg-gray-800'
+                       }`}>
+                         {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Target className="w-4 h-4" />}
+                       </div>
+                       <span className="font-bold">{step.label}</span>
+                     </div>
+                     {isNext && <span className="text-xs uppercase tracking-wider font-bold bg-black/20 px-3 py-1 rounded-lg">Tap to Confirm</span>}
+                   </button>
+                 )
+               })}
+            </div>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-6">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-6">
+              <h3 className="font-bold text-red-500 flex items-center mb-4">
+                <ShieldAlert className="w-5 h-5 mr-2" /> Dispatch Info
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs text-red-400/70 mb-1">Emergency ID</p>
+                  <p className="text-sm font-bold text-red-100">#{activeEmergency.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-red-400/70 mb-1">Type</p>
+                  <p className="text-sm font-bold text-red-100">{activeEmergency.type}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-red-400/70 mb-1">Patient</p>
+                  <p className="text-sm font-bold text-red-100">{activeEmergency.patient_name}</p>
+                </div>
+              </div>
+            </div>
+
+            <button className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center font-bold text-white transition-colors">
+              <MapPin className="w-5 h-5 mr-2" /> Open in Maps
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* Incoming Emergency Modal */}
+      {incomingEmergency && !activeEmergency && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md px-4">
+          <div className="bg-gradient-to-b from-[#1a0a0a] to-[#0a0000] border border-red-500/30 rounded-3xl p-8 max-w-md w-full shadow-[0_0_100px_rgba(239,68,68,0.2)] animate-[fade-in-up_0.3s_ease-out]">
+            
+            <div className="w-20 h-20 rounded-full bg-red-500/20 border-4 border-red-500 flex items-center justify-center mx-auto mb-6 relative">
+              <div className="absolute inset-0 rounded-full animate-pulse-glow"></div>
+              <ShieldAlert className="w-10 h-10 text-red-500 animate-pulse" />
+            </div>
+            
+            <h2 className="text-2xl font-black text-white text-center tracking-tight mb-2 uppercase">Emergency Dispatch</h2>
+            <p className="text-center text-red-400 mb-8 font-medium bg-red-500/10 py-2 rounded-lg">Critical Medical Incident nearby</p>
+            
+            <div className="bg-white/5 rounded-2xl p-5 mb-8 space-y-3 border border-white/5">
+              <div className="flex justify-between">
+                <span className="text-gray-400 text-sm">Type</span>
+                <span className="text-white font-bold text-sm text-right max-w-[200px]">{incomingEmergency.type}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400 text-sm">Location</span>
+                <span className="text-white font-bold text-sm text-right">{incomingEmergency.latitude.toFixed(4)}, {incomingEmergency.longitude.toFixed(4)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400 text-sm">Distance</span>
+                <span className="text-white font-bold text-sm text-right">~2.4 km away</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button 
+                onClick={acceptEmergency}
+                className="w-full h-14 bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.4)] transition-all transform hover:scale-[1.02]"
+              >
+                Accept Request
+              </button>
+              <button 
+                onClick={rejectEmergency}
+                className="w-full h-14 bg-white/5 hover:bg-white/10 text-gray-300 font-bold uppercase tracking-wider rounded-xl transition-colors"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

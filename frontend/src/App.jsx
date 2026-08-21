@@ -48,6 +48,8 @@ const LandingPage = () => (
   </div>
 );
 
+import Layout from './components/Layout';
+
 function AppRoutes() {
   return (
     <>
@@ -57,39 +59,19 @@ function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute><Dashboard /></ProtectedRoute>
-        } />
-        <Route path="/admin/command-center" element={
-          <ProtectedRoute><CommandCenter /></ProtectedRoute>
-        } />
-        <Route path="/admin/agencies" element={
-          <ProtectedRoute><AdminAgencies /></ProtectedRoute>
-        } />
-        <Route path="/hospital/dashboard" element={
-          <ProtectedRoute><HospitalDashboard /></ProtectedRoute>
-        } />
-        <Route path="/ambulance/dashboard" element={
-          <ProtectedRoute><AmbulanceDashboard /></ProtectedRoute>
-        } />
-        <Route path="/admin/audit-logs" element={
-          <ProtectedRoute><AuditLogs /></ProtectedRoute>
-        } />
-        <Route path="/admin/broadcast" element={
-          <ProtectedRoute><Broadcasts /></ProtectedRoute>
-        } />
-        <Route path="/emergencies/:id" element={
-          <ProtectedRoute><EmergencyDetails /></ProtectedRoute>
-        } />
-        <Route path="/history" element={
-          <ProtectedRoute><ResponseHistory /></ProtectedRoute>
-        } />
-        <Route path="/my-emergency/:id" element={
-          <ProtectedRoute><CitizenTracker /></ProtectedRoute>
-        } />
-        <Route path="/analytics" element={
-          <ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>
-        } />
+        
+        {/* Wrapped Authenticated Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/admin/command-center" element={<ProtectedRoute><Layout><CommandCenter /></Layout></ProtectedRoute>} />
+        <Route path="/admin/agencies" element={<ProtectedRoute><Layout><AdminAgencies /></Layout></ProtectedRoute>} />
+        <Route path="/hospital/dashboard" element={<ProtectedRoute><Layout><HospitalDashboard /></Layout></ProtectedRoute>} />
+        <Route path="/ambulance/dashboard" element={<ProtectedRoute><Layout><AmbulanceDashboard /></Layout></ProtectedRoute>} />
+        <Route path="/admin/audit-logs" element={<ProtectedRoute><Layout><AuditLogs /></Layout></ProtectedRoute>} />
+        <Route path="/admin/broadcast" element={<ProtectedRoute><Layout><Broadcasts /></Layout></ProtectedRoute>} />
+        <Route path="/emergencies/:id" element={<ProtectedRoute><Layout><EmergencyDetails /></Layout></ProtectedRoute>} />
+        <Route path="/history" element={<ProtectedRoute><Layout><ResponseHistory /></Layout></ProtectedRoute>} />
+        <Route path="/my-emergency/:id" element={<ProtectedRoute><Layout><CitizenTracker /></Layout></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Layout><AnalyticsDashboard /></Layout></ProtectedRoute>} />
       </Routes>
     </>
   );

@@ -65,37 +65,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id} (User: ${socket.user?.id || 'unauthenticated'})`);
-
-  if (socket.user && socket.user.role === 'admin') {
-    socket.join('command_center');
-  } else if (socket.user && ['driver', 'hospital_admin', 'ambulance_driver', 'hospital'].includes(socket.user.role)) {
-    socket.join('responders');
-  }
-
-  // Phase 8 additions
-  socket.on('join_user', (userId) => {
-    socket.join(`user_${userId}`);
-  });
-
-  socket.on('join_emergency', (emergencyId) => {
-    socket.join(`emergency_${emergencyId}`);
-  });
-
-  socket.on('driver:location', (data) => {
-    io.to(`emergency_${data.emergency_id}`).emit('driver:location', {
-      latitude: data.latitude,
-      longitude: data.longitude,
-      driver_id: data.driver_id,
-      timestamp: Date.now()
-    });
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
-});
 
 // Centralized Error Handling (Phase 7)
 app.use((err, req, res, next) => {
