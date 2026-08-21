@@ -4,16 +4,16 @@ const { getDistanceFromLatLonInKm } = require('../utils/distance');
 
 exports.createEmergency = async (req, res) => {
   try {
-    const { type, description, latitude, longitude, address, severity } = req.body;
+    const { type, description, latitude, longitude, address, severity, patient_name, patient_age } = req.body;
     
     if (!type || !severity) {
       return res.status(400).json({ message: 'Type and severity are required' });
     }
 
     const [result] = await db.query(
-      `INSERT INTO emergencies (user_id, type, description, latitude, longitude, address, severity, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'WAITING_FOR_AMBULANCE')`,
-      [req.userId, type, description, latitude, longitude, address, severity]
+      `INSERT INTO emergencies (user_id, type, description, latitude, longitude, address, severity, patient_name, patient_age, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'SEARCHING_AMBULANCE')`,
+      [req.userId, type, description, latitude, longitude, address, severity, patient_name, patient_age]
     );
 
     const [newEmergency] = await db.query(`SELECT * FROM emergencies WHERE id = ?`, [result.insertId]);
@@ -219,7 +219,7 @@ exports.declineEmergency = async (req, res) => {
     }
     
     if (!nextAssignedId) {
-      await db.query('UPDATE emergencies SET ambulance_driver_id = NULL, status = "WAITING_FOR_AMBULANCE" WHERE id = ?', [id]);
+      await db.query('UPDATE emergencies SET ambulance_driver_id = NULL, status = "SEARCHING_AMBULANCE" WHERE id = ?', [id]);
     }
 
     res.json({ message: 'Emergency declined, routed to next available.', nextAssignedId });
