@@ -13,6 +13,9 @@ import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import CommandCenter from './pages/CommandCenter';
 import AuditLogs from './pages/AuditLogs';
 import Broadcasts from './pages/Broadcasts';
+import AdminAgencies from './pages/AdminAgencies';
+import HospitalDashboard from './pages/HospitalDashboard';
+import AmbulanceDashboard from './pages/AmbulanceDashboard';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
